@@ -1,0 +1,51 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: opentracing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opentracing
+  template:
+    metadata:
+      labels:
+        app: opentracing
+    spec:
+      containers:
+      - name: opentracing
+        image: python-opentracing:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opentracing-server
+spec:
+  ports:
+  - port: 80
+    targetPort: 5000
+    protocol: TCP
+    name: http
+  selector:
+    app: opentracing
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: opentracing-ingress
+  annotations:
+    nginx.org/location-snippets: |
+      opentracing_propagate_context;
+
+spec:
+  rules:
+  - host: opentracing.example.com
+    http:
+      paths:
+      - path: /trace
+        backend:
+          serviceName: opentracing-server
+          servicePort: 80
